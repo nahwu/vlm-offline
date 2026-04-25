@@ -31,7 +31,7 @@ docker compose up --build vlm-api
 
 ### GPU container (NVIDIA)
 ```bash
-docker compose --profile gpu up --build vlm-api-gpu
+docker compose --profile gpu up --build vlm-api-gpu -d
 ```
 
 Then open `http://127.0.0.1:8000/`.

@@ -15,6 +15,10 @@ const refreshMetricsBtn = document.getElementById("refreshMetricsBtn");
 
 const requestHistory = [];
 
+if (window.location.protocol === "file:") {
+  errorBox.textContent = "This app must be served over HTTP. Start the API server and open http://127.0.0.1:8000/ (or /static/index.html).";
+}
+
 function formatBytes(bytes) {
   if (!bytes) {
     return "0 B";

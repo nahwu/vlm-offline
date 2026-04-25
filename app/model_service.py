@@ -1,7 +1,11 @@
+import logging
 import os
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List
+
+logger = logging.getLogger("vlm.model_service")
 
 import cv2
 import torch
@@ -31,12 +35,48 @@ class VLMService:
 
         torch_dtype = torch.float16 if self._device == "cuda" else torch.float32
 
+        logger.info(
+            "[model] download started model=%s device=%s dtype=%s",
+            self.config.model_name,
+            self._device,
+            str(torch_dtype),
+        )
+        _dl_start = time.perf_counter()
+
         self._model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
             self.config.model_name,
             torch_dtype=torch_dtype,
             device_map="auto",
         )
         self._processor = AutoProcessor.from_pretrained(self.config.model_name)
+
+        _dl_elapsed = time.perf_counter() - _dl_start
+        logger.info(
+            "[model] download completed model=%s elapsed_s=%.1f",
+            self.config.model_name,
+            _dl_elapsed,
+        )
+
+        _actual_device = str(self._model.device) if hasattr(self._model, "device") else self._device
+        _on_gpu = _actual_device.startswith("cuda")
+        if _on_gpu:
+            gpu_name = torch.cuda.get_device_name(torch.device(_actual_device))
+            logger.info(
+                "[model] started on GPU device=%s gpu_name=%s",
+                _actual_device,
+                gpu_name,
+            )
+        else:
+            logger.warning(
+                "[model] started on CPU device=%s — inference will be slow",
+                _actual_device,
+            )
+
+        logger.info(
+            "[model] ready model=%s device=%s",
+            self.config.model_name,
+            _actual_device,
+        )
 
     @property
     def device(self) -> str:
@@ -88,17 +128,46 @@ class VLMService:
         is_video = content_type.startswith("video/") or path.suffix.lower() in {".mp4", ".mov", ".avi", ".mkv"}
         is_image = content_type.startswith("image/") or path.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp", ".bmp"}
 
-        if is_image:
-            with Image.open(path) as image:
-                return self.infer_from_image(image=image, query=query)
-        if is_video:
-            return self.infer_from_video_with_pipeline(
-                video_path=str(path),
-                query=query,
-                pipeline=video_pipeline,
-                max_frames=max_video_frames,
+        media_type = "image" if is_image else "video" if is_video else "unknown"
+        logger.info(
+            "[inference] call received file=%s media=%s pipeline=%s query_len=%d",
+            path.name,
+            media_type,
+            video_pipeline,
+            len(query),
+        )
+        _inf_start = time.perf_counter()
+
+        try:
+            if is_image:
+                with Image.open(path) as image:
+                    result = self.infer_from_image(image=image, query=query)
+            elif is_video:
+                result = self.infer_from_video_with_pipeline(
+                    video_path=str(path),
+                    query=query,
+                    pipeline=video_pipeline,
+                    max_frames=max_video_frames,
+                )
+            else:
+                raise ValueError("Unsupported file type. Upload an image or video.")
+        except Exception:
+            logger.exception(
+                "[inference] call failed file=%s media=%s",
+                path.name,
+                media_type,
             )
-        raise ValueError("Unsupported file type. Upload an image or video.")
+            raise
+
+        _inf_elapsed = time.perf_counter() - _inf_start
+        logger.info(
+            "[inference] call completed file=%s media=%s elapsed_s=%.2f answer_len=%d",
+            path.name,
+            media_type,
+            _inf_elapsed,
+            len(result),
+        )
+        return result
 
     def _generate(self, query: str, images: List[Image.Image]) -> str:
         if not query.strip():

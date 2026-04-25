@@ -8,7 +8,7 @@ from pathlib import Path
 import torch
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.metrics import RuntimeMetrics
@@ -107,8 +107,8 @@ def _run_inference_for_upload(upload: UploadFile, query: str, max_video_frames: 
 
 
 @app.get("/")
-def index() -> FileResponse:
-    return FileResponse(static_dir / "index.html")
+def index() -> RedirectResponse:
+    return RedirectResponse(url="/static/index.html")
 
 
 @app.get("/health")

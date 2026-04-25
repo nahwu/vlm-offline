@@ -8,3 +8,5 @@ __pycache__/
 !tests/assets/*.mp4
 *.png
 !tests/assets/*.png
+
+.cache/
