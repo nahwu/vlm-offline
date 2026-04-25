@@ -29,6 +29,10 @@ class VLMService:
         self._processor = None
         self._device = "cuda" if torch.cuda.is_available() else "cpu"
 
+    def load(self) -> None:
+        """Eagerly load the model at service startup."""
+        self._ensure_model_loaded()
+
     def _ensure_model_loaded(self) -> None:
         if self._model is not None and self._processor is not None:
             return

@@ -3,6 +3,7 @@ import logging
 import tempfile
 import time
 import uuid
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 import torch
@@ -14,8 +15,48 @@ from fastapi.staticfiles import StaticFiles
 from app.metrics import RuntimeMetrics
 from app.model_service import VLMService, load_config_from_env
 
+_LOG_FORMAT = "%(asctime)s %(levelname)-8s [%(name)s] %(message)s"
+_LOG_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S"
 
-app = FastAPI(title="Qwen2.5-VL-7B REST API", version="0.1.0")
+
+def _configure_logging() -> None:
+    """
+    Called inside the FastAPI lifespan so it runs after uvicorn has set up its
+    own handlers.  Does two things:
+      1. Adds a StreamHandler to the 'vlm' logger so that INFO messages from
+         model_service are not silently dropped (the root logger has no handlers
+         in a default uvicorn deployment, so propagation alone is not enough).
+      2. Patches the timestamp-less formatter on every existing uvicorn handler
+         so that all log lines share the same timestamped format.
+    """
+    formatter = logging.Formatter(fmt=_LOG_FORMAT, datefmt=_LOG_DATE_FORMAT)
+
+    # -- vlm.* (model_service, etc.) ----------------------------------------
+    vlm_log = logging.getLogger("vlm")
+    vlm_log.setLevel(logging.INFO)
+    if not vlm_log.handlers:
+        _handler = logging.StreamHandler()
+        _handler.setFormatter(formatter)
+        vlm_log.addHandler(_handler)
+    vlm_log.propagate = False  # don't double-emit via root
+
+    # -- uvicorn loggers — patch their formatters to add timestamps -----------
+    for name in ("uvicorn", "uvicorn.error", "uvicorn.access"):
+        for h in logging.getLogger(name).handlers:
+            h.setFormatter(formatter)
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    _configure_logging()
+    logger_startup = logging.getLogger("vlm.startup")
+    logger_startup.info("[startup] loading model...")
+    service.load()
+    logger_startup.info("[startup] model ready — accepting requests")
+    yield
+
+
+app = FastAPI(title="Qwen2.5-VL-7B REST API", version="0.1.0", lifespan=lifespan)
 service = VLMService(config=load_config_from_env())
 metrics = RuntimeMetrics()
 logger = logging.getLogger("uvicorn.error")
