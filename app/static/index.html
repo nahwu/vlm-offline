@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VLM Offline Console</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <div class="background-glow"></div>
+  <main class="layout">
+    <header class="hero panel">
+      <div>
+        <p class="kicker">VLM Offline Console</p>
+        <h1>Qwen2.5-VL API Web App</h1>
+        <p class="sub">Query image and video files through single or batch API flows with temporal pipeline control and runtime telemetry.</p>
+      </div>
+      <button id="refreshMetricsBtn" class="secondary">Refresh Metrics</button>
+    </header>
+
+    <section class="grid-main">
+      <section class="panel">
+        <h2>Request Builder</h2>
+        <form id="queryForm" class="form-grid">
+          <label for="fileInput">Files</label>
+          <input id="fileInput" type="file" accept="image/*,video/*" multiple required />
+
+          <label for="queryInput">Query</label>
+          <textarea id="queryInput" placeholder="Example: Describe key actions, objects, and timing."></textarea>
+
+          <div class="dual">
+            <div>
+              <label for="videoPipeline">Video Pipeline</label>
+              <select id="videoPipeline">
+                <option value="sampled_frames">sampled_frames</option>
+                <option value="full_temporal">full_temporal</option>
+              </select>
+            </div>
+            <div>
+              <label for="coordMode">Coordination</label>
+              <select id="coordMode">
+                <option value="server_batch">server_batch</option>
+                <option value="client_sequential">client_sequential</option>
+              </select>
+            </div>
+          </div>
+
+          <label for="maxFrames">Max Video Frames (sampled mode)</label>
+          <input id="maxFrames" type="number" min="1" max="64" value="8" />
+
+          <button id="submitBtn" type="submit">Run Query</button>
+          <div class="meta" id="status"></div>
+          <div id="error" class="meta error"></div>
+        </form>
+      </section>
+
+      <section class="panel">
+        <h2>Selected Files</h2>
+        <ul id="fileList" class="list files"></ul>
+      </section>
+
+      <section class="panel span-2">
+        <h2>Results</h2>
+        <div id="results" class="result-grid"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Runtime Metrics</h2>
+        <pre id="metricsBox" class="pre">Waiting for /metrics...</pre>
+      </section>
+
+      <section class="panel">
+        <h2>Request History</h2>
+        <ul id="historyList" class="list history"></ul>
+      </section>
+    </section>
+  </main>
+  <script src="/static/app.js"></script>
+</body>
+</html>

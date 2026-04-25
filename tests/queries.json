@@ -1,0 +1,6 @@
+{
+  "image": "Describe the main objects in this image.",
+  "video": "Summarize what changes across the video frames.",
+  "batch": "Answer each file with one concise summary.",
+  "video_pipeline": "sampled_frames"
+}
