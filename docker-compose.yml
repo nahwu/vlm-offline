@@ -7,10 +7,15 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - MODEL_NAME=Qwen/Qwen2.5-VL-7B-Instruct
-      - MAX_NEW_TOKENS=256
-      - MAX_VIDEO_FRAMES=8
-      - VIDEO_FPS=1.0
+      - MODEL_NAME=${MODEL_NAME:-Qwen/Qwen2.5-VL-7B-Instruct}
+      - MAX_NEW_TOKENS=${MAX_NEW_TOKENS:-128}
+      - IMAGE_MIN_PIXELS=${IMAGE_MIN_PIXELS:-50176}
+      - IMAGE_MAX_PIXELS=${IMAGE_MAX_PIXELS:-602112}
+      - MODEL_QUANTIZATION=${MODEL_QUANTIZATION:-none}
+      - MODEL_COMPUTE_DTYPE=${MODEL_COMPUTE_DTYPE:-float32}
+      - ATTN_IMPLEMENTATION=${ATTN_IMPLEMENTATION:-eager}
+      - MAX_VIDEO_FRAMES=${MAX_VIDEO_FRAMES:-8}
+      - VIDEO_FPS=${VIDEO_FPS:-1.0}
       - HF_HOME=/root/.cache/huggingface
     volumes:
       # Bind mount: host directory survives 'docker-compose down', 'docker volume prune',
@@ -28,12 +33,18 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - MODEL_NAME=Qwen/Qwen2.5-VL-7B-Instruct
-      - MAX_NEW_TOKENS=256
-      - MAX_VIDEO_FRAMES=8
-      - VIDEO_FPS=1.0
+      - MODEL_NAME=${MODEL_NAME:-Qwen/Qwen2.5-VL-7B-Instruct}
+      - MAX_NEW_TOKENS=${MAX_NEW_TOKENS:-128}
+      - IMAGE_MIN_PIXELS=${IMAGE_MIN_PIXELS:-50176}
+      - IMAGE_MAX_PIXELS=${IMAGE_MAX_PIXELS:-1003520}
+      - MODEL_QUANTIZATION=${MODEL_QUANTIZATION:-nf4}
+      - MODEL_COMPUTE_DTYPE=${MODEL_COMPUTE_DTYPE:-bfloat16}
+      - ATTN_IMPLEMENTATION=${ATTN_IMPLEMENTATION:-sdpa}
+      - MAX_VIDEO_FRAMES=${MAX_VIDEO_FRAMES:-8}
+      - VIDEO_FPS=${VIDEO_FPS:-1.0}
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
       - HF_HOME=/root/.cache/huggingface
     volumes:
       - ./.cache/huggingface:/root/.cache/huggingface

@@ -36,6 +36,18 @@ docker compose --profile gpu up --build vlm-api-gpu -d
 
 Then open `http://127.0.0.1:8000/`.
 
+Check that the container is actually using CUDA:
+```bash
+curl http://127.0.0.1:8000/health
+```
+
+The response should show `cuda_available: true`, a `gpu_name`, and a non-empty `torch_cuda` value. If it reports CPU, verify Docker GPU access first:
+```bash
+docker run --rm --gpus all nvidia/cuda:12.8.1-base-ubuntu22.04 nvidia-smi
+```
+
+On a 16 GB RTX 5080, the GPU service defaults to 4-bit NF4 loading for `Qwen2.5-VL-7B-Instruct`. This keeps the 7B model on the GPU instead of offloading layers to CPU, which is usually much faster than fp16 offload while preserving more accuracy than switching to a smaller model.
+
 ## Web Application
 - Open `http://127.0.0.1:8000/`.
 - Build a request with one or more image/video files.
@@ -111,11 +123,19 @@ python tests\test_api_requests.py --base-url http://127.0.0.1:8000 --run-batch
 ## Config
 Copy `.env.example` to `.env` if needed:
 - `MODEL_NAME` default: `Qwen/Qwen2.5-VL-7B-Instruct`
-- `MAX_NEW_TOKENS` default: `256`
+- `MAX_NEW_TOKENS` default: `128`
+- `IMAGE_MIN_PIXELS` default: `50176` (`224 * 224`)
+- `IMAGE_MAX_PIXELS` default: `1003520` (`1280 * 28 * 28`) for the GPU service; CPU Compose uses `602112`
+- `MODEL_QUANTIZATION` default: `nf4` for GPU Compose, `none` for CPU Compose
+- `MODEL_COMPUTE_DTYPE` default: `bfloat16` for GPU Compose
+- `ATTN_IMPLEMENTATION` default: `sdpa` for GPU Compose
 - `MAX_VIDEO_FRAMES` default: `8`
 - `VIDEO_FPS` default: `1.0` (used in `full_temporal` pipeline)
+- `IMAGE_MAX_PIXELS` controls visual tokens and latency. Use `401408` (`512 * 28 * 28`) for faster coarse descriptions, `602112` for balanced image QA, and the default `1003520` for small text or fine visual detail.
 
 ## Notes
 - First run downloads model weights and may take several minutes.
 - GPU is strongly recommended for practical latency.
+- The Docker build installs CUDA-enabled PyTorch wheels. The container does not need a full CUDA toolkit unless you enable optional Flash Attention builds.
+- If startup logs show parameters on `cpu` or `meta`, the model is offloading and latency will suffer. Keep `MODEL_QUANTIZATION=nf4`, reduce `IMAGE_MAX_PIXELS`, or use a smaller model.
 - Server batch mode processes files sequentially by default for stability; the HTML UI also supports `client_sequential` coordination.

@@ -154,7 +154,7 @@ def index() -> RedirectResponse:
 
 @app.get("/health")
 def health() -> dict:
-    return {"status": "ok", "device": service.device}
+    return {"status": "ok", **service.runtime_info}
 
 
 @app.get("/metrics")
