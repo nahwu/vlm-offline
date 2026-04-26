@@ -12,6 +12,7 @@ const results = document.getElementById("results");
 const historyList = document.getElementById("historyList");
 const metricsBox = document.getElementById("metricsBox");
 const refreshMetricsBtn = document.getElementById("refreshMetricsBtn");
+const maxFramesField = document.getElementById("maxFramesField");
 
 const requestHistory = [];
 
@@ -113,6 +114,12 @@ function renderCards(payload, mode) {
   }
 }
 
+function syncPipelineFields() {
+  const sampledMode = videoPipeline.value === "sampled_frames";
+  maxFramesField.hidden = !sampledMode;
+  maxFrames.disabled = !sampledMode;
+}
+
 async function sendSingle(file, query, frames, pipeline) {
   const data = new FormData();
   data.append("file", file);
@@ -179,6 +186,8 @@ fileInput.addEventListener("change", () => {
   renderFileList(Array.from(fileInput.files || []));
 });
 
+videoPipeline.addEventListener("change", syncPipelineFields);
+
 refreshMetricsBtn.addEventListener("click", refreshMetrics);
 
 form.addEventListener("submit", async (event) => {
@@ -232,4 +241,5 @@ form.addEventListener("submit", async (event) => {
 
 renderFileList([]);
 renderHistory();
+syncPipelineFields();
 refreshMetrics();

@@ -110,6 +110,11 @@ h2 {
   grid-template-columns: 1fr;
 }
 
+.field-block {
+  display: grid;
+  gap: 8px;
+}
+
 @media (min-width: 620px) {
   .dual {
     grid-template-columns: 1fr 1fr;
@@ -119,6 +124,77 @@ h2 {
 label {
   font-weight: 600;
   font-size: 0.95rem;
+}
+
+.label-with-help {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.field-help {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  outline: none;
+}
+
+.help-trigger {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--brand-soft);
+  color: var(--brand);
+  border: 1px solid rgba(0, 95, 115, 0.22);
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: help;
+}
+
+.help-tooltip {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 10px);
+  width: min(280px, 70vw);
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 95, 115, 0.16);
+  background: #fffdf7;
+  box-shadow: 0 14px 30px rgba(15, 20, 20, 0.12);
+  color: var(--ink);
+  font-size: 0.84rem;
+  font-weight: 400;
+  line-height: 1.4;
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+  transition: opacity 0.16s ease, transform 0.16s ease;
+  z-index: 10;
+}
+
+.help-tooltip::before {
+  content: "";
+  position: absolute;
+  top: -6px;
+  left: 12px;
+  width: 12px;
+  height: 12px;
+  background: #fffdf7;
+  border-top: 1px solid rgba(0, 95, 115, 0.16);
+  border-left: 1px solid rgba(0, 95, 115, 0.16);
+  transform: rotate(45deg);
+}
+
+.field-help:hover .help-tooltip,
+.field-help:focus-within .help-tooltip,
+.field-help:focus .help-tooltip {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 textarea,
