@@ -24,12 +24,26 @@ REST API project for running `Qwen/Qwen2.5-VL-7B-Instruct` with image or video i
 
 ## Single-Machine Deployment (Docker Preferred)
 
+Docker is the recommended runtime. The Python dependencies include GPU-oriented packages, and the 7B VLM is not practical on CPU for interactive latency.
+
 ### CPU container
+CPU inference is supported for development and compatibility checks, but it is slow.
+
+```bash
+cp .env.cpu.example .env
+```
+
 ```bash
 docker compose up --build vlm-api
 ```
 
 ### GPU container (NVIDIA)
+For an NVIDIA GPU, copy the GPU env example first:
+
+```bash
+cp .env.gpu.example .env
+```
+
 ```bash
 docker compose --profile gpu up --build vlm-api-gpu -d
 ```
@@ -60,7 +74,9 @@ On a 16 GB RTX 5080, the GPU service defaults to 4-bit NF4 loading for `Qwen2.5-
   - Runtime stats from `/metrics`
   - Local request history in the UI
 
-## Quick Start (Windows PowerShell)
+## Local Development (Windows PowerShell)
+The Docker GPU path above is preferred for inference. Local Windows setup is mainly useful for API/frontend development and may run slowly or require dependency adjustments if CUDA and `bitsandbytes` are not available locally.
+
 ```powershell
 python -m venv .venv
 . .\.venv\Scripts\Activate.ps1
@@ -73,6 +89,12 @@ uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 Open browser: `http://127.0.0.1:8000/`
 
 ## API Usage
+Generate the deterministic test files before running the sample API commands:
+
+```powershell
+python tests\generate_deterministic_media.py
+```
+
 ### Health check
 ```bash
 curl http://127.0.0.1:8000/health
@@ -121,17 +143,27 @@ python tests\test_api_requests.py --base-url http://127.0.0.1:8000 --run-batch
 ```
 
 ## Config
-Copy `.env.example` to `.env` if needed:
-- `MODEL_NAME` default: `Qwen/Qwen2.5-VL-7B-Instruct`
-- `MAX_NEW_TOKENS` default: `128`
-- `IMAGE_MIN_PIXELS` default: `50176` (`224 * 224`)
-- `IMAGE_MAX_PIXELS` default: `1003520` (`1280 * 28 * 28`) for the GPU service; CPU Compose uses `602112`
-- `MODEL_QUANTIZATION` default: `nf4` for GPU Compose, `none` for CPU Compose
-- `MODEL_COMPUTE_DTYPE` default: `bfloat16` for GPU Compose
-- `ATTN_IMPLEMENTATION` default: `sdpa` for GPU Compose
-- `MAX_VIDEO_FRAMES` default: `8`
-- `VIDEO_FPS` default: `1.0` (used in `full_temporal` pipeline)
-- `IMAGE_MAX_PIXELS` controls visual tokens and latency. Use `401408` (`512 * 28 * 28`) for faster coarse descriptions, `602112` for balanced image QA, and the default `1003520` for small text or fine visual detail.
+Use one env template at a time:
+
+```bash
+cp .env.gpu.example .env
+# or
+cp .env.cpu.example .env
+```
+
+| Setting | GPU default | CPU default | Notes |
+| --- | --- | --- | --- |
+| `MODEL_NAME` | `Qwen/Qwen2.5-VL-7B-Instruct` | Same | Model id from Hugging Face. |
+| `MAX_NEW_TOKENS` | `128` | `128` | Upper bound for generated answer length. |
+| `IMAGE_MIN_PIXELS` | `50176` | `50176` | `224 * 224`; lower visual resolution bound. |
+| `IMAGE_MAX_PIXELS` | `1003520` | `602112` | Main quality/latency dial. |
+| `MODEL_QUANTIZATION` | `nf4` | `none` | NF4 keeps the 7B model on a 16 GB RTX 5080 without CPU offload. |
+| `MODEL_COMPUTE_DTYPE` | `bfloat16` | `float32` | GPU compute dtype vs CPU dtype. |
+| `ATTN_IMPLEMENTATION` | `sdpa` | `eager` | Stable default attention implementation. |
+| `MAX_VIDEO_FRAMES` | `8` | `8` | Used by sampled-frame video processing. |
+| `VIDEO_FPS` | `1.0` | `1.0` | Used by the `full_temporal` video pipeline. |
+
+`IMAGE_MAX_PIXELS` controls visual tokens and latency. Use `401408` (`512 * 28 * 28`) for faster coarse descriptions, `602112` for balanced image QA, and `1003520` (`1280 * 28 * 28`) for small text or fine visual detail.
 
 ## Notes
 - First run downloads model weights and may take several minutes.
